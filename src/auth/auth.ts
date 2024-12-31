@@ -602,7 +602,7 @@ export class Auth {
 
         return { writeCap: cap };
       } catch (err) {
-        return new ValidationError(err);
+        return new ValidationError(err as string);
       }
     }
 

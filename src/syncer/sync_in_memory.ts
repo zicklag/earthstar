@@ -7,11 +7,15 @@ import { Syncer } from "./syncer.ts";
 import type { CapSelector, RuntimeDriver } from "../peer/types.ts";
 
 /** Sync two {@linkcode Peer} instances in the same process using an in-memory transport. */
-export async function syncInMemory(alfie: Peer, betty: Peer, opts: {
-  alfieInterests?: CapSelector[];
-  bettyInterests?: CapSelector[];
-  runtime: RuntimeDriver;
-}): Promise<(() => void) | ValidationError> {
+export async function syncInMemory(
+  alfie: Peer,
+  betty: Peer,
+  opts: {
+    alfieInterests?: CapSelector[];
+    bettyInterests?: CapSelector[];
+    runtime: RuntimeDriver;
+  }
+): Promise<[Syncer, Syncer] | ValidationError> {
   const [alfieTransport, bettyTransport] = Willow.transportPairInMemory();
 
   // @ts-ignore We are allowed to do this.
@@ -33,9 +37,7 @@ export async function syncInMemory(alfie: Peer, betty: Peer, opts: {
       const result = await alfie.getStore(tag);
 
       if (isErr(result)) {
-        throw new EarthstarError(
-          "Could not get Store requested by Syncer.",
-        );
+        throw new EarthstarError("Could not get Store requested by Syncer.");
       }
 
       return result;
@@ -65,9 +67,7 @@ export async function syncInMemory(alfie: Peer, betty: Peer, opts: {
       const result = await betty.getStore(tag);
 
       if (isErr(result)) {
-        throw new EarthstarError(
-          "Could not get Store requested by Syncer.",
-        );
+        throw new EarthstarError("Could not get Store requested by Syncer.");
       }
 
       return result;
@@ -78,8 +78,5 @@ export async function syncInMemory(alfie: Peer, betty: Peer, opts: {
     runtime: opts.runtime,
   });
 
-  return () => {
-    messengerAlfie.close();
-    messengerBetty.close();
-  };
+  return [messengerAlfie, messengerBetty];
 }

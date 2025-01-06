@@ -5,14 +5,14 @@ import { notErr } from "../src/util/errors.ts";
 import { syncInMemory } from "../src/syncer/sync_in_memory.ts";
 import { delay } from "https://deno.land/std@0.224.0/async/delay.ts";
 import { getStorageDriverFilesystem, RuntimeDriverDeno } from "../mod.deno.ts";
-import { Path } from "../mod.ts";
+import { Path, StorageDriverMemory } from "../mod.ts";
 
 // ALFIE
 
 const peer = new Peer({
   password: "password1234",
   runtime: new RuntimeDriverDeno(),
-  storage: await getStorageDriverFilesystem("./debug/testing-alfie"),
+  storage: new StorageDriverMemory(),
 });
 
 assertEquals(await peer.shares(), []);
@@ -52,17 +52,17 @@ assertEquals(result.kind, "success");
 const peer2 = new Peer({
   password: "password2345",
   runtime: new RuntimeDriverDeno(),
-  storage: await getStorageDriverFilesystem("./debug/testing-betty"),
+  storage: new StorageDriverMemory(),
 });
 
 const bettyKeypair = await peer2.createIdentity("bett");
 assert(notErr(bettyKeypair));
 
-const delWriteCap = await gardeningRootWriteCap.delegate(bettyKeypair.tag);
+const delWriteCap = await peer.mintCap(gardeningKeypair.tag, bettyKeypair.tag, "write")
 assert(notErr(delWriteCap));
 assert(await delWriteCap.isValid());
 
-const delReadCap = await gardeningRootReadCap.delegate(bettyKeypair.tag);
+const delReadCap = await peer.mintCap(gardeningKeypair.tag, bettyKeypair.tag, "read");
 assert(notErr(delReadCap));
 assert(await delReadCap.isValid());
 
@@ -82,13 +82,14 @@ assertEquals(result2.kind, "success");
 
 // NOW SYNC!
 
-const stopSyncing = await syncInMemory(peer, peer2, {
+const syncers = await syncInMemory(peer, peer2, {
   runtime: new RuntimeDriverDeno(),
 });
 await delay(1000);
-assert(notErr(stopSyncing));
+assert(notErr(syncers));
 
-stopSyncing();
+syncers[0].close();
+syncers[1].close();
 
 console.group("Alfie has...");
 for await (const doc of gardeningAlfie.documents()) {

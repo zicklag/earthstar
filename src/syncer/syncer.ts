@@ -124,6 +124,14 @@ export class Syncer {
     });
   }
 
+  forceReconcile() {
+    this.wgpsMessenger.forceReconcile();
+  }
+
+  get isClosed(): boolean {
+    return this.isClosed;
+  }
+
   /** Stop syncing and terminate the connection. */
   close() {
     this.wgpsMessenger.close();
